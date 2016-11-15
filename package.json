@@ -11,14 +11,16 @@
         "Other"
     ],
     "activationEvents": [
-        "onCommand:extension.sayHello"
+        "onLanguage:markdown"
     ],
     "main": "./out/src/extension",
     "contributes": {
-        "commands": [{
-            "command": "extension.sayHello",
-            "title": "Hello World"
-        }]
+        "commands": [
+            {
+                "command": "extension.countWords",
+                "title": "Count words"
+            }
+        ]
     },
     "scripts": {
         "vscode:prepublish": "tsc -p ./",
