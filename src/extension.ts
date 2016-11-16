@@ -60,7 +60,7 @@ class WordCounter {
 class CodeGitStatusContentProvider {
     public provideTextDocumentContent(uri: Uri, token: CancellationToken): string | Thenable<string> {
         console.log(`providing content for ${uri.toString()}, cancelled ${token.isCancellationRequested}`);
-        return Promise.resolve('morjestaaaa');
+        return Promise.resolve('morjestaaaa\nasdfasdf');
     }
 }
 
@@ -73,11 +73,16 @@ class CodeGitController {
         this.contentProvider = new CodeGitStatusContentProvider();
         workspace.registerTextDocumentContentProvider('codegit', this.contentProvider);
         subscriptions.push(commands.registerCommand('extension.openGitStatus', this.openGitStatus, this));
+        subscriptions.push(commands.registerCommand('type', this.keyPress, this));
         this.disposable = Disposable.from(...subscriptions);
     }
 
     dispose() {
         this.disposable.dispose();
+    }
+
+    private keyPress(what) {
+        console.log(`KEYPRESS! ${what}`);
     }
 
     private openGitStatus() {
