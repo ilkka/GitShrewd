@@ -1650,6 +1650,10 @@ signal-exit@^3.0.0:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/signal-exit/-/signal-exit-3.0.1.tgz#5a4c884992b63a7acd9badb7894c3ee9cfccad81"
 
+simple-git:
+  version "1.62.0"
+  resolved "https://registry.yarnpkg.com/simple-git/-/simple-git-1.62.0.tgz#87384d477d3c36ae0ddcca25a22f2b4f186561de"
+
 sntp@1.x.x:
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/sntp/-/sntp-1.0.9.tgz#6541184cc90aeea6c6e7b35e2659082443c66198"
