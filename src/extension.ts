@@ -17,6 +17,12 @@ export function activate(context: ExtensionContext) {
 }
 
 class CodeGitStatusContentProvider {
+    private changeListeners: ((u: Uri) => any)[];
+
+    constructor() {
+        this.changeListeners = [];
+    }
+
     public provideTextDocumentContent(uri: Uri, token: CancellationToken): string | Thenable<string> {
         if (uri.path === 'status') {
             if (workspace.rootPath) {
@@ -25,6 +31,31 @@ class CodeGitStatusContentProvider {
             return Promise.resolve('No folder open');
         }
         return Promise.reject(`unrecognized URI ${uri}`);
+    }
+
+    public onDidChange(listener: (u: Uri) => any, thisArg?: any, disposables?: Disposable[]): Disposable {
+        let that = thisArg || this;
+        let func = listener.bind(that);
+        let idx = this.changeListeners.push(func) - 1;
+        let dispose = () => {
+            this.changeListeners[idx] = null;
+        }
+        let disposable = { dispose };
+        if (disposables) {
+            disposables.push(disposable);
+        }
+        return disposable;
+    }
+
+    public refreshStatus() {
+        console.log('status refresh requested');
+        this.notifyListeners('codegit:status');
+    }
+
+    private notifyListeners(uri: string) {
+        for (let l of this.changeListeners) {
+            l(Uri.parse(uri));
+        }
     }
 
     private provideStatusContent(): string | Thenable<string> {
@@ -81,6 +112,9 @@ class CodeGitController {
 
     private keyPress(what) {
         console.log(`KEYPRESS! ${what.text}`);
+        if (what.text === 'r') {
+            this.contentProvider.refreshStatus();
+        }
     }
 
     private openGitStatus() {
@@ -103,7 +137,7 @@ class CodeGitController {
                     .then((editor) => {
                         this.view = editor;
                         console.log('git view displayed');
-                        this.keypressDisposable = this.registerCommand('type', this.keyPress);
+                        this.keypressDisposable = this.keypressDisposable || this.registerCommand('type', this.keyPress);
                     });
             }, (err) => {
                 console.error(`failed to open doc: ${err}`);
