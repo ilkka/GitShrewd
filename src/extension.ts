@@ -62,7 +62,15 @@ class CodeGitStatusContentProvider {
         const git = simpleGit(workspace.rootPath);
         return git.status()
         .then((stat) => {
-            return `git status: ${JSON.stringify(stat, null, 2)}`;
+            console.log(`git status: ${JSON.stringify(stat, null, 2)}`);
+            let output = '';
+            if (stat.modified.length) {
+                output += 'UNSTAGED:\n';
+                for (let path of stat.modified) {
+                    output += `  ${path}\n`;
+                }
+            }
+            return output;
         })
         .catch((err) => {
             console.error(`error getting git status: ${err}`);
