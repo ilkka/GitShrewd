@@ -63,12 +63,22 @@ class CodeGitStatusContentProvider {
         return git.status()
         .then((stat) => {
             console.log(`git status: ${JSON.stringify(stat, null, 2)}`);
+            let unstaged: string[] = [];
+            let staged: string[] = [];
             let output = '';
-            if (stat.modified.length) {
-                output += 'UNSTAGED:\n';
-                for (let path of stat.modified) {
-                    output += `  ${path}\n`;
+            for (let file of stat.files) {
+                if (file.index === 'M') {
+                    staged.push(file.path);
                 }
+                if (file.working_dir === 'M') {
+                    unstaged.push(file.path);
+                }
+            }
+            if (staged.length) {
+                output += `STAGED:${staged.reduce((out, fn) => `${out}\n  ${fn}`, '')}\n\n`;
+            }
+            if (unstaged.length) {
+                output += `UNSTAGED:${unstaged.reduce((out, fn) => `${out}\n  ${fn}`, '')}\n\n`;
             }
             return output;
         })
