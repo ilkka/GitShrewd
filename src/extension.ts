@@ -1,6 +1,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import { commands, CancellationToken, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, TextDocument, TextEditor, Uri, window, workspace } from 'vscode';
+import { commands, CancellationToken, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, TextDocument, TextEditor, TextEditorLineNumbersStyle, Uri, window, workspace } from 'vscode';
 import * as Promise from 'bluebird';
 import * as simpleGit from 'simple-git/promise';
 
@@ -156,6 +156,9 @@ class GitViewController {
                         this.view = editor;
                         console.log('git view displayed');
                         this.keypressDisposable = this.keypressDisposable || this.registerCommand('type', this.keyPress);
+                        this.view.options = {
+                            lineNumbers: TextEditorLineNumbersStyle.Off
+                        };
                     });
             }, (err) => {
                 console.error(`failed to open doc: ${err}`);
