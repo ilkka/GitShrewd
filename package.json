@@ -1,14 +1,24 @@
 {
-  "name": "code-git",
-  "displayName": "code-git",
-  "description": "Git integration",
+  "name": "GitShrewd",
+  "displayName": "GitShrewd",
+  "description": "Interactive keyboard-based Git integration",
   "version": "0.0.1",
-  "publisher": "ilkka",
+  "preview": true,
+  "publisher": "gitshrewd",
+  "license": "MIT",
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/ilkka/GitShrewd"
+  },
   "engines": {
     "vscode": "^1.7.0"
   },
   "categories": [
     "Other"
+  ],
+  "keywords": [
+      "Git",
+      "VCS"
   ],
   "activationEvents": [
     "onCommand:extension.openGitStatus"
@@ -18,7 +28,7 @@
     "commands": [
       {
         "command": "extension.openGitStatus",
-        "title": "Code-Git Status"
+        "title": "GitShrewd: Status"
       }
     ]
   },

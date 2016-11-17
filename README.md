@@ -1,6 +1,6 @@
-# code-git README
+# GitShrewd README
 
-This is the README for your extension "code-git". After writing up a brief description, we recommend including the following sections.
+This is the README for your extension "GitShrewd". After writing up a brief description, we recommend including the following sections.
 
 ## Features
 

@@ -7,16 +7,16 @@ import * as simpleGit from 'simple-git/promise';
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: ExtensionContext) {
-    console.log('code-git activating');
+    console.log('GitShrewd activating');
 
-    let codeGitController = new CodeGitController();
+    let gitViewController = new GitViewController();
 
-    context.subscriptions.push(codeGitController);
+    context.subscriptions.push(gitViewController);
 
-    console.log('code-git activated');
+    console.log('GitShrewd activated');
 }
 
-class CodeGitStatusContentProvider {
+class GitViewContentProvider {
     private changeListeners: ((u: Uri) => any)[];
 
     constructor() {
@@ -49,7 +49,7 @@ class CodeGitStatusContentProvider {
 
     public refreshStatus() {
         console.log('status refresh requested');
-        this.notifyListeners('codegit:status');
+        this.notifyListeners('gitshrewd:status');
     }
 
     private notifyListeners(uri: string) {
@@ -89,17 +89,17 @@ class CodeGitStatusContentProvider {
     }
 }
 
-class CodeGitController {
+class GitViewController {
     private subscriptions: Disposable[];
     private disposable: Disposable
-    private contentProvider: CodeGitStatusContentProvider
+    private contentProvider: GitViewContentProvider
     private view: TextEditor;
     private keypressDisposable: Disposable;
 
     constructor() {
         this.subscriptions = [];
-        this.contentProvider = new CodeGitStatusContentProvider();
-        workspace.registerTextDocumentContentProvider('codegit', this.contentProvider);
+        this.contentProvider = new GitViewContentProvider();
+        workspace.registerTextDocumentContentProvider('gitshrewd', this.contentProvider);
         this.registerCommand('extension.openGitStatus', this.openGitStatus);
     }
 
@@ -136,7 +136,7 @@ class CodeGitController {
     }
 
     private openGitStatus() {
-        workspace.openTextDocument(Uri.parse('codegit:status'))
+        workspace.openTextDocument(Uri.parse('gitshrewd:status'))
             .then((document) => {
                 console.log('opened doc, showing editor');
                 this.eventuallyDispose(window.onDidChangeActiveTextEditor(
@@ -164,7 +164,7 @@ class CodeGitController {
 }
 
 export function deactivate() {
-    console.log('code-git deactivating');
-    console.log('code-git deactivated');
+    console.log('GitShrewd deactivating');
+    console.log('GitShrewd deactivated');
 }
 
