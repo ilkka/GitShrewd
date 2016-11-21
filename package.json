@@ -7,8 +7,8 @@
   "publisher": "gitshrewd",
   "license": "MIT",
   "repository": {
-      "type": "git",
-      "url": "https://github.com/ilkka/GitShrewd"
+    "type": "git",
+    "url": "https://github.com/ilkka/GitShrewd"
   },
   "engines": {
     "vscode": "^1.7.0"
@@ -17,8 +17,8 @@
     "Other"
   ],
   "keywords": [
-      "Git",
-      "VCS"
+    "Git",
+    "VCS"
   ],
   "activationEvents": [
     "onCommand:extension.openGitStatus"
@@ -38,9 +38,7 @@
     "postinstall": "node ./node_modules/vscode/bin/install"
   },
   "devDependencies": {
-    "@types/bluebird": "^3.0.35",
-    "@types/mocha": "^2.2.32",
-    "@types/node": "^6.0.40",
+    "bluebird": "^3.4.6",
     "mocha": "^2.3.3",
     "simple-git": "^1.62.0",
     "typescript": "^2.0.3",

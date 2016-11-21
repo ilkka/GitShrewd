@@ -1,2 +1,4 @@
 out
 node_modules
+# don't save actual typings
+typings/
