@@ -1,6 +1,6 @@
 import { commands, CancellationToken, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, TextDocument, TextEditor, TextEditorLineNumbersStyle, Uri, window, workspace } from 'vscode';
 import * as Promise from 'bluebird';
-import * as simpleGit from 'simple-git/promise';
+import * as simpleGit from 'simple-git';
 
 /**
  * This class is responsible for generating all our git view content.
@@ -89,7 +89,8 @@ export default class GitViewContentProvider {
      */
     private provideStatusContent(): Thenable<string> {
         const git = simpleGit(workspace.rootPath);
-        return git.status()
+        const gitStatus = Promise.promisify(git.status);
+        return gitStatus.call(git)
         .then((stat) => {
             console.log(`git status: ${JSON.stringify(stat, null, 2)}`);
             let unstaged: string[] = [];

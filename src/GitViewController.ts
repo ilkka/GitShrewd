@@ -1,7 +1,11 @@
 import { commands, CancellationToken, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, TextDocument, TextEditor, TextEditorLineNumbersStyle, Uri, window, workspace } from 'vscode';
 import * as Promise from 'bluebird';
+import { stat } from 'fs';
+import * as simpleGit from 'simple-git';
 
 import GitViewContentProvider from './GitViewContentProvider';
+
+const statP = Promise.promisify(stat);
 
 /**
  * Git view controller. This class is responsible for creating and handling
@@ -63,6 +67,17 @@ export default class GitViewController {
             const line = this.view.selection.active.line;
             console.log(`line: ${line}`);
             console.log(`content: ${this.view.document.lineAt(line).text}`);
+        } else if (what.text === 's') {
+            const filename = this.view.document.lineAt(this.view.selection.active.line).text.trim();
+            console.log(`checking if there is a workspace file named ${filename}`);
+            statP(filename)
+                .then(stats => stats.isFile())
+                .then(isfile => {
+                    const git = simpleGit(workspace.rootPath);
+                    const add = Promise.promisify(git.add);
+                    return add.call(git, [filename]);
+                })
+                .then(() => this.contentProvider.refreshStatus());
         }
     }
 
