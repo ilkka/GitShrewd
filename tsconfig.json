@@ -9,8 +9,14 @@
         "sourceMap": true,
         "rootDir": "."
     },
-    "exclude": [
-        "node_modules",
-        ".vscode-test"
+    // "exclude": [
+    //     "node_modules",
+    //     ".vscode-test"
+    // ],
+    "files": [
+        "typings/index.d.ts",
+        "src/extension.ts",
+        "src/GitViewContentProvider.ts",
+        "src/GitViewController.ts"
     ]
 }
