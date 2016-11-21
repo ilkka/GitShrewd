@@ -1,6 +1,7 @@
 import { commands, CancellationToken, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, TextDocument, TextEditor, TextEditorLineNumbersStyle, Uri, window, workspace } from 'vscode';
 import * as Promise from 'bluebird';
 import { stat } from 'fs';
+import * as path from 'path';
 import * as simpleGit from 'simple-git';
 
 import GitViewContentProvider from './GitViewContentProvider';
@@ -69,15 +70,20 @@ export default class GitViewController {
             console.log(`content: ${this.view.document.lineAt(line).text}`);
         } else if (what.text === 's') {
             const filename = this.view.document.lineAt(this.view.selection.active.line).text.trim();
+            const filepath = path.join(workspace.rootPath, filename);
             console.log(`checking if there is a workspace file named ${filename}`);
-            statP(filename)
+            statP(filepath)
                 .then(stats => stats.isFile())
                 .then(isfile => {
                     const git = simpleGit(workspace.rootPath);
                     const add = Promise.promisify(git.add);
                     return add.call(git, [filename]);
                 })
-                .then(() => this.contentProvider.refreshStatus());
+                .then(() => this.contentProvider.refreshStatus())
+                .catch((err) => {
+                    console.error(`Error staging file: ${err}`);
+                    return this.contentProvider.refreshStatus();
+                });
         }
     }
 
