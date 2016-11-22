@@ -84,6 +84,24 @@ export default class GitViewController {
                     console.error(`Error staging file: ${err}`);
                     return this.contentProvider.refreshStatus();
                 });
+        } else if (what.text === 'u') {
+            const filename = this.view.document.lineAt(this.view.selection.active.line).text.trim();
+            const filepath = path.join(workspace.rootPath, filename);
+            // TODO: this is not good, we should be able to unstage
+            // a file that no longer exists in the filesystem.
+            console.log(`checking if there is a workspace file named ${filename}`);
+            statP(filepath)
+                .then(stats => stats.isFile())
+                .then(isfile => {
+                    const git = simpleGit(workspace.rootPath);
+                    const reset = Promise.promisify(git.reset);
+                    return reset.call(git, [filepath]);
+                })
+                .then(() => this.contentProvider.refreshStatus())
+                .catch((err) => {
+                    console.error(`Error unstaging file: ${err}`);
+                    return this.contentProvider.refreshStatus();
+                });
         }
     }
 
