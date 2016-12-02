@@ -1,5 +1,5 @@
 import { commands, CancellationToken, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, TextDocument, TextEditor, TextEditorLineNumbersStyle, Uri, window, workspace } from 'vscode';
-import * as Promise from 'bluebird';
+import * as thenify from 'thenify';
 import * as simpleGit from 'simple-git';
 
 /**
@@ -29,8 +29,11 @@ export default class GitViewContentProvider {
         if (uri.path === 'status') {
             if (workspace.rootPath) {
                 return Promise.all([
-                    this.provideStatusContent()
-                ]).reduce((memo: string, val: string): string => memo += `${val}\n`, '');
+                    this.provideStatusContent(),
+                    this.provideShortcutHelp()
+                ]).then((content: string[]): string =>
+                    content.reduce((memo, val) => memo += `${val}\n`, '')
+                );
             }
             return Promise.resolve('No folder open');
         }
@@ -89,7 +92,7 @@ export default class GitViewContentProvider {
      */
     private provideStatusContent(): Thenable<string> {
         const git = simpleGit(workspace.rootPath);
-        const gitStatus = Promise.promisify(git.status);
+        const gitStatus = thenify(git.status);
         return gitStatus.call(git)
         .then((stat) => {
             console.log(`git status: ${JSON.stringify(stat, null, 2)}`);
@@ -117,4 +120,16 @@ export default class GitViewContentProvider {
             return `error getting git status: ${err}`;
         });
     }
+
+    /**
+     * Return shortcut key help
+     */
+    private  provideShortcutHelp(): Thenable<string> {
+        return Promise.resolve(`COMMANDS:
+[s]tage current
+[u]nstage current
+[c]ommit staged`);
+    }
+
+
 }

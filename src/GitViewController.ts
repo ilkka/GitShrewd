@@ -1,12 +1,12 @@
 import { commands, CancellationToken, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, TextDocument, TextEditor, TextEditorLineNumbersStyle, Uri, window, workspace } from 'vscode';
-import * as Promise from 'bluebird';
+import * as thenify from 'thenify';
 import { stat } from 'fs';
 import * as path from 'path';
 import * as simpleGit from 'simple-git';
 
 import GitViewContentProvider from './GitViewContentProvider';
 
-const statP = Promise.promisify(stat);
+const statP = thenify(stat);
 
 /**
  * Git view controller. This class is responsible for creating and handling
@@ -69,39 +69,9 @@ export default class GitViewController {
             console.log(`line: ${line}`);
             console.log(`content: ${this.view.document.lineAt(line).text}`);
         } else if (what.text === 's') {
-            const filename = this.view.document.lineAt(this.view.selection.active.line).text.trim();
-            const filepath = path.join(workspace.rootPath, filename);
-            console.log(`checking if there is a workspace file named ${filename}`);
-            statP(filepath)
-                .then(stats => stats.isFile())
-                .then(isfile => {
-                    const git = simpleGit(workspace.rootPath);
-                    const add = Promise.promisify(git.add);
-                    return add.call(git, [filename]);
-                })
-                .then(() => this.contentProvider.refreshStatus())
-                .catch((err) => {
-                    console.error(`Error staging file: ${err}`);
-                    return this.contentProvider.refreshStatus();
-                });
+            return this.stageCurrent();
         } else if (what.text === 'u') {
-            const filename = this.view.document.lineAt(this.view.selection.active.line).text.trim();
-            const filepath = path.join(workspace.rootPath, filename);
-            // TODO: this is not good, we should be able to unstage
-            // a file that no longer exists in the filesystem.
-            console.log(`checking if there is a workspace file named ${filename}`);
-            statP(filepath)
-                .then(stats => stats.isFile())
-                .then(isfile => {
-                    const git = simpleGit(workspace.rootPath);
-                    const reset = Promise.promisify(git.reset);
-                    return reset.call(git, [filepath]);
-                })
-                .then(() => this.contentProvider.refreshStatus())
-                .catch((err) => {
-                    console.error(`Error unstaging file: ${err}`);
-                    return this.contentProvider.refreshStatus();
-                });
+            return this.unstageCurrent();
         }
     }
 
@@ -135,6 +105,72 @@ export default class GitViewController {
                     });
             }, (err) => {
                 console.error(`failed to open doc: ${err}`);
+            });
+    }
+
+    /**
+     * Get file under cursor
+     */
+    private getFocusedFile() {
+        return this.view.document.lineAt(this.view.selection.active.line).text.trim();
+    }
+
+    /**
+     * Turn workspace root relative path to absolute path.
+     */
+    private static toAbsoluteWorkspacePath(workspacePath: string) {
+        return path.join(workspace.rootPath, workspacePath);
+    }
+
+    /**
+     * Check if the given workspace-relative path is a file.
+     *
+     * @param {string} relpath relative path.
+     * @return {Promise<boolean>} true if relpath is a workspace file.
+     */
+    private isWorkspaceFile(relpath: string) {
+        console.log(`checking if there is a workspace file named ${relpath}`);
+        return statP(GitViewController.toAbsoluteWorkspacePath(relpath))
+            .then(stats => stats.isFile());
+    }
+
+    /**
+     * Stage currently focused file.
+     */
+    private stageCurrent() {
+        const filename = this.getFocusedFile()
+        return this.isWorkspaceFile(filename)
+            .then(isfile => {
+                const git = simpleGit(workspace.rootPath);
+                const add = thenify(git.add);
+                return add.call(git, [filename]);
+            })
+            .then(() => this.contentProvider.refreshStatus())
+            .catch((err) => {
+                console.error(`Error staging file: ${err}`);
+                return this.contentProvider.refreshStatus();
+            });
+    }
+
+    /**
+     * Unstage currently focused file
+     */
+    private unstageCurrent() {
+        const filename = this.getFocusedFile();
+        // TODO: this is not good, we should be able to unstage
+        // a file that no longer exists in the filesystem.
+        return this.isWorkspaceFile(filename)
+            .then(isfile => {
+                const git = simpleGit(workspace.rootPath);
+                const reset = thenify(git.reset);
+                return reset.call(git, [
+                    GitViewController.toAbsoluteWorkspacePath(filename)
+                ]);
+            })
+            .then(() => this.contentProvider.refreshStatus())
+            .catch((err) => {
+                console.error(`Error unstaging file: ${err}`);
+                return this.contentProvider.refreshStatus();
             });
     }
 }
