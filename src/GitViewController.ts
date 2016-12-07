@@ -1,12 +1,24 @@
-import { commands, CancellationToken, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, TextDocument, TextEditor, TextEditorLineNumbersStyle, Uri, window, workspace } from 'vscode';
+/// <reference path="./spawn-rx.d.ts" />
+import { commands, CancellationToken, Disposable, ExtensionContext, Position, StatusBarAlignment, StatusBarItem, TextDocument, TextEditor, TextEditorLineNumbersStyle, Uri, window, workspace } from 'vscode';
 import * as thenify from 'thenify';
-import { stat } from 'fs';
+import { stat, unlink } from 'fs';
 import * as path from 'path';
 import * as simpleGit from 'simple-git';
-
+import { spawnPromise } from 'spawn-rx';
 import GitViewContentProvider from './GitViewContentProvider';
 
 const statP = thenify(stat);
+const unlinkP = thenify(unlink);
+
+const commitMsgFilename = '.git/COMMIT_EDITMSG';
+
+const gitCommitComment = `# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+%%STATUS%%
+# ------------------------ >8 ------------------------
+# Do not touch the line above.
+# Everything below will be removed.
+`;
 
 /**
  * Git view controller. This class is responsible for creating and handling
@@ -72,6 +84,8 @@ export default class GitViewController {
             return this.stageCurrent();
         } else if (what.text === 'u') {
             return this.unstageCurrent();
+        } else if (what.text === 'c') {
+            return this.commitStaged();
         }
     }
 
@@ -123,12 +137,12 @@ export default class GitViewController {
     }
 
     /**
-     * Check if the given workspace-relative path is a file.
+     * Check if the given workspace-relative path is a file that exists.
      *
      * @param {string} relpath relative path.
      * @return {Promise<boolean>} true if relpath is a workspace file.
      */
-    private isWorkspaceFile(relpath: string) {
+    private static isWorkspaceFile(relpath: string) {
         console.log(`checking if there is a workspace file named ${relpath}`);
         return statP(GitViewController.toAbsoluteWorkspacePath(relpath))
             .then(stats => stats.isFile());
@@ -139,7 +153,7 @@ export default class GitViewController {
      */
     private stageCurrent() {
         const filename = this.getFocusedFile()
-        return this.isWorkspaceFile(filename)
+        return GitViewController.isWorkspaceFile(filename)
             .then(isfile => {
                 const git = simpleGit(workspace.rootPath);
                 const add = thenify(git.add);
@@ -159,7 +173,7 @@ export default class GitViewController {
         const filename = this.getFocusedFile();
         // TODO: this is not good, we should be able to unstage
         // a file that no longer exists in the filesystem.
-        return this.isWorkspaceFile(filename)
+        return GitViewController.isWorkspaceFile(filename)
             .then(isfile => {
                 const git = simpleGit(workspace.rootPath);
                 const reset = thenify(git.reset);
@@ -172,5 +186,34 @@ export default class GitViewController {
                 console.error(`Error unstaging file: ${err}`);
                 return this.contentProvider.refreshStatus();
             });
+    }
+
+    /**
+     * Commit staged
+     */
+    private commitStaged() {
+        return Promise.all([
+            spawnPromise('git', ['status'], { cwd: workspace.rootPath }),
+            spawnPromise('git', ['diff'], { cwd: workspace.rootPath }),
+        ]).then(([statusOutput, diffOutput]) => {
+            const commentedStatus = '# ' + statusOutput.replace(/([\n])/g, '$1# ');
+            const combined =
+                gitCommitComment.replace(/%%STATUS%%/, commentedStatus) + diffOutput;
+            // open commit msg editor
+            return Promise.resolve(GitViewController.isWorkspaceFile(commitMsgFilename))
+            .then(exists => exists
+                ? unlinkP(GitViewController.toAbsoluteWorkspacePath(commitMsgFilename))
+                : true
+            )
+            .then(() => workspace.openTextDocument(
+                Uri.parse(`untitled:${GitViewController.toAbsoluteWorkspacePath(commitMsgFilename)}`)
+            ))
+            .then(doc => window.showTextDocument(doc))
+            .then(editor => editor.edit((editBuilder) => {
+                editBuilder.insert(new Position(0, 0), combined);
+            }));
+        }).catch((err) => {
+            console.error(`commit failed: ${err}`);
+        });
     }
 }

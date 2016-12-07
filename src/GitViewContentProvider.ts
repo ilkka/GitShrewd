@@ -128,7 +128,8 @@ export default class GitViewContentProvider {
         return Promise.resolve(`COMMANDS:
 [s]tage current
 [u]nstage current
-[c]ommit staged`);
+[c]ommit staged
+[r]efresh view`);
     }
 
 

@@ -1,7 +1,6 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import { commands, CancellationToken, Disposable, ExtensionContext, StatusBarAlignment, StatusBarItem, TextDocument, TextEditor, TextEditorLineNumbersStyle, Uri, window, workspace } from 'vscode';
-import * as Promise from 'bluebird';
 
 import GitViewContentProvider from './GitViewContentProvider';
 import GitViewController from './GitViewController';

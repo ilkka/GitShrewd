@@ -40,6 +40,7 @@
   "devDependencies": {
     "mocha": "^2.3.3",
     "simple-git": "^1.62.0",
+    "spawn-rx": "^2.0.6",
     "thenify": "^3.2.1",
     "typescript": "^2.0.3",
     "vscode": "^1.0.0"
