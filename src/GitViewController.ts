@@ -1,5 +1,18 @@
 /// <reference path="./spawn-rx.d.ts" />
-import { commands, CancellationToken, Disposable, ExtensionContext, Position, StatusBarAlignment, StatusBarItem, TextDocument, TextEditor, TextEditorLineNumbersStyle, Uri, window, workspace } from 'vscode';
+import {
+    commands,
+    Disposable,
+    Position,
+    Range,
+    Selection,
+    TextDocument,
+    TextEditor,
+    TextEditorLineNumbersStyle,
+    TextEditorRevealType,
+    Uri,
+    window,
+    workspace
+} from 'vscode';
 import * as thenify from 'thenify';
 import { stat, unlink } from 'fs';
 import * as path from 'path';
@@ -12,7 +25,8 @@ const unlinkP = thenify(unlink);
 
 const commitMsgFilename = '.git/COMMIT_EDITMSG';
 
-const gitCommitComment = `# Please enter the commit message for your changes. Lines starting
+const gitCommitComment = `
+# Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
 %%STATUS%%
 # ------------------------ >8 ------------------------
@@ -145,7 +159,8 @@ export default class GitViewController {
     private static isWorkspaceFile(relpath: string) {
         console.log(`checking if there is a workspace file named ${relpath}`);
         return statP(GitViewController.toAbsoluteWorkspacePath(relpath))
-            .then(stats => stats.isFile());
+            .then(stats => stats.isFile())
+            .catch(() => false);
     }
 
     /**
@@ -211,6 +226,9 @@ export default class GitViewController {
             .then(doc => window.showTextDocument(doc))
             .then(editor => editor.edit((editBuilder) => {
                 editBuilder.insert(new Position(0, 0), combined);
+            }).then(() => {
+                editor.selection = new Selection(new Position(0, 0), new Position(0, 0));
+                editor.revealRange(new Range(0, 0, 0, 0), TextEditorRevealType.Default);
             }));
         }).catch((err) => {
             console.error(`commit failed: ${err}`);
