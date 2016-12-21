@@ -87,13 +87,8 @@ export default class GitViewController {
      * @param {Object} what an event object with the property 'text' containing the keypress.
      */
     private keyPress(what) {
-        console.log(`keypress: ${what.text}`);
         if (what.text === 'r') {
             this.contentProvider.refreshStatus();
-        } else if (what.text === 'l') {
-            const line = this.view.selection.active.line;
-            console.log(`line: ${line}`);
-            console.log(`content: ${this.view.document.lineAt(line).text}`);
         } else if (what.text === 's') {
             return this.stageCurrent();
         } else if (what.text === 'u') {
@@ -109,7 +104,7 @@ export default class GitViewController {
     private openGitStatus() {
         workspace.openTextDocument(Uri.parse('gitshrewd:status'))
             .then((document) => {
-                console.log('opened doc, showing editor');
+                console.log('opened status doc, showing editor');
                 this.eventuallyDispose(window.onDidChangeActiveTextEditor(
                     (e: TextEditor) => {
                         if (e !== this.view && this.keypressDisposable) {
@@ -157,7 +152,6 @@ export default class GitViewController {
      * @return {Promise<boolean>} true if relpath is a workspace file.
      */
     private static isWorkspaceFile(relpath: string) {
-        console.log(`checking if there is a workspace file named ${relpath}`);
         return statP(GitViewController.toAbsoluteWorkspacePath(relpath))
             .then(stats => stats.isFile())
             .catch(() => false);

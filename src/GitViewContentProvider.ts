@@ -70,7 +70,6 @@ export default class GitViewContentProvider {
      * Request a git status view refresh.
      */
     public refreshStatus() {
-        console.log('status refresh requested');
         this.notifyListeners('gitshrewd:status');
     }
 
@@ -95,7 +94,6 @@ export default class GitViewContentProvider {
         const gitStatus = thenify(git.status);
         return gitStatus.call(git)
         .then((stat) => {
-            console.log(`git status: ${JSON.stringify(stat, null, 2)}`);
             let unstaged: string[] = [];
             let staged: string[] = [];
             let output = '';
