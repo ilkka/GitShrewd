@@ -216,7 +216,7 @@ export default class GitViewController {
         return co(function *(): any {
             const [statusOutput, diffOutput]: string[] = yield [
                 spawnPromise('git', ['status'], { cwd: workspace.rootPath }),
-                spawnPromise('git', ['diff'], { cwd: workspace.rootPath }),
+                spawnPromise('git', ['diff', '--staged'], { cwd: workspace.rootPath }),
             ];
             const commentedStatus = '# ' + statusOutput.replace(/([\n])/g, '$1# ');
             const combined =
