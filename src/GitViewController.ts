@@ -18,6 +18,7 @@ import { stat, unlink } from 'fs';
 import * as path from 'path';
 import * as simpleGit from 'simple-git';
 import { spawnPromise } from 'spawn-rx';
+import * as co from 'co';
 import GitViewContentProvider from './GitViewContentProvider';
 
 const statP = thenify(stat);
@@ -25,6 +26,8 @@ const unlinkP = thenify(unlink);
 
 const commitMsgFilename = '.git/COMMIT_EDITMSG';
 
+const gitCommentRegex = /^#.*\n?/mg;
+const gitCutMarkRegex = /^# ------------------------ >8 ------------------------/m;
 const gitCommitComment = `
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
@@ -198,32 +201,55 @@ export default class GitViewController {
     }
 
     /**
-     * Commit staged
+     * Commit staged. Creates a new text document for the default git commit
+     * message file (.git/COMMIT_EDITMSG), opens a text editor on it, and
+     * pre-populates it with the normal git status + diff preamble.
+     * After the doc is saved, it is automatically closed and the commit
+     * is performed, both by the onDidSaveTextDocument handler.
+     *
+     * @todo will this work if the user just closes the doc instead?
+     * @todo probably there should be some key combo to do the commit too.
+     * @todo having save-on-lost-focus will break this because the
+     *       commit will happen immediately.
      */
     private commitStaged() {
-        return Promise.all([
-            spawnPromise('git', ['status'], { cwd: workspace.rootPath }),
-            spawnPromise('git', ['diff'], { cwd: workspace.rootPath }),
-        ]).then(([statusOutput, diffOutput]) => {
+        return co(function *(): any {
+            const [statusOutput, diffOutput]: string[] = yield [
+                spawnPromise('git', ['status'], { cwd: workspace.rootPath }),
+                spawnPromise('git', ['diff'], { cwd: workspace.rootPath }),
+            ];
             const commentedStatus = '# ' + statusOutput.replace(/([\n])/g, '$1# ');
             const combined =
                 gitCommitComment.replace(/%%STATUS%%/, commentedStatus) + diffOutput;
-            // open commit msg editor
-            return Promise.resolve(GitViewController.isWorkspaceFile(commitMsgFilename))
-            .then(exists => exists
-                ? unlinkP(GitViewController.toAbsoluteWorkspacePath(commitMsgFilename))
-                : true
-            )
-            .then(() => workspace.openTextDocument(
-                Uri.parse(`untitled:${GitViewController.toAbsoluteWorkspacePath(commitMsgFilename)}`)
-            ))
-            .then(doc => window.showTextDocument(doc))
-            .then(editor => editor.edit((editBuilder) => {
+            const commitMsgFilePath = GitViewController.toAbsoluteWorkspacePath(commitMsgFilename);
+            const exists: boolean = yield GitViewController.isWorkspaceFile(commitMsgFilename);
+            if (exists) {
+                yield unlinkP(commitMsgFilePath);
+            }
+            const doc: TextDocument = yield workspace.openTextDocument(
+                Uri.parse(`untitled:${commitMsgFilePath}`)
+            );
+            const editor: TextEditor = yield window.showTextDocument(doc);
+            yield editor.edit((editBuilder) => {
                 editBuilder.insert(new Position(0, 0), combined);
-            }).then(() => {
-                editor.selection = new Selection(new Position(0, 0), new Position(0, 0));
-                editor.revealRange(new Range(0, 0, 0, 0), TextEditorRevealType.Default);
-            }));
+            });
+            editor.selection = new Selection(new Position(0, 0), new Position(0, 0));
+            editor.revealRange(new Range(0, 0, 0, 0), TextEditorRevealType.Default);
+            const disposable = workspace.onDidSaveTextDocument((doc) => {
+                if (doc.fileName !== GitViewController.toAbsoluteWorkspacePath(commitMsgFilename)) {
+                    return;
+                }
+                const msg = doc.getText()
+                    .split(gitCutMarkRegex)[0] // drop the diff part
+                    .replace(gitCommentRegex, ''); // drop the comments
+                const git = simpleGit(workspace.rootPath);
+                git.commit(msg, (err) => {
+                    if (err) throw err;
+                    commands.executeCommand('workbench.action.closeActiveEditor');
+                    disposable.dispose();
+                    this.contentProvider.refreshStatus();
+                })
+            });
         }).catch((err) => {
             console.error(`commit failed: ${err}`);
         });

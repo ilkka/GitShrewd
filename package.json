@@ -44,5 +44,8 @@
     "thenify": "^3.2.1",
     "typescript": "^2.0.3",
     "vscode": "^1.0.0"
+  },
+  "dependencies": {
+    "co": "^4.6.0"
   }
 }
